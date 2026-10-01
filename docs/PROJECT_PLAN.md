@@ -13,13 +13,14 @@ To deliver rapid developer value and establish a rock-solid foundation, AIFlow a
 
 ### 1.1. In-Scope for MVP (Milestone 1)
 - [x] **Project Initialization (`aiflow init`):**
-  - Scaffolds `.aiflow/` directory with clean, minimal schema files (`project.yaml`, `workflow.yaml`, `state.yaml`, `tasks.md`, `requirements.md`, `architecture.md`).
+  - Scaffolds `.aiflow/` directory with clean, minimal schema files (`project.yaml`, `workflow.yaml`, `state.yaml`, `plan.md`, `tasks.md`).
+  - Supports `--preset lean` (default 4 phases), `--preset standard` (5 phases), or `--preset rigorous` (10 phases).
   - Auto-detects project name and primary programming language.
   - Automatically appends `.aiflow/.cache/` to `.gitignore`.
 - [x] **Git Read-Only Adapter:**
   - Fast, safe inspection of current branch, uncommitted files, and recent commit messages without taking index locks or mutating repository history.
 - [x] **Workflow State Machine:**
-  - Deterministic 10-phase finite state machine with role associations and human approval checkpoints.
+  - Deterministic finite state machine running the Lean 4-Phase default (`Plan` → `Build` → `Verify` → `Ship`) with role associations and human approval checkpoints.
   - Manual phase transitions (`aiflow phase next`, `aiflow phase complete`, `aiflow phase set`).
 - [x] **Task Checklist Engine:**
   - Parses Markdown task list in `.aiflow/tasks.md`.

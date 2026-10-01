@@ -1,0 +1,37 @@
+version: '1.0'
+name: Standard AI Workflow
+preset: standard
+initial_phase: specify
+phases:
+- id: specify
+  name: Specify
+  role: architect
+  required_artifacts:
+  - .aiflow/spec.md
+  requires_human_approval: true
+  next_phase: plan
+- id: plan
+  name: Plan
+  role: architect
+  required_artifacts:
+  - .aiflow/tasks.md
+  requires_human_approval: false
+  next_phase: build
+- id: build
+  name: Build
+  role: implementer
+  required_artifacts: []
+  requires_human_approval: false
+  next_phase: verify
+- id: verify
+  name: Verify
+  role: tester
+  required_artifacts: []
+  requires_human_approval: true
+  next_phase: ship
+- id: ship
+  name: Ship
+  role: approver
+  required_artifacts: []
+  requires_human_approval: true
+  next_phase: null
