@@ -1,6 +1,6 @@
 [package]
 name = "aiflow"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Shrinkhal <shrinkhal@example.com>"]
 description = "Local developer workflow and project-tracking CLI for software developers who use AI coding agents"
@@ -16,3 +16,4 @@ comfy-table = "7.1"
 owo-colors = "4.0"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1.0"
+walkdir = "2.5"

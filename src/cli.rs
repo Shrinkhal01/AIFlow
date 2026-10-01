@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "aiflow",
     author = "Shrinkhal",
-    version = "0.1.0",
+    version = "0.2.0",
     about = "Local developer workflow and project-tracking CLI for AI-assisted development",
     long_about = "A local-first, Git-native developer control plane that tracks repository development phases, tasks, and next actions."
 )]
@@ -24,11 +24,17 @@ pub enum Commands {
     /// Display recommended next action and assigned AI role
     Next,
 
+    /// Scan and display multi-repository fleet dashboard
+    Projects(ProjectsArgs),
+
     /// Manage workflow phases
     Phase(PhaseArgs),
 
     /// Inspect and manage project tasks
     Task(TaskArgs),
+
+    /// Run test suite and record cached evidence
+    Test(TestArgs),
 
     /// Run health check verifying repository structure and state
     Doctor,
@@ -52,6 +58,29 @@ pub struct InitArgs {
 #[derive(Args, Debug)]
 pub struct StatusArgs {
     /// Output raw JSON instead of formatted terminal UI
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ProjectsArgs {
+    /// Root directory to scan (defaults to configured roots or parent)
+    #[arg(short, long)]
+    pub root: Option<String>,
+
+    /// Max directory recursion depth
+    #[arg(short, long, default_value_t = 3)]
+    pub depth: usize,
+
+    /// Include repositories without .aiflow initialized
+    #[arg(short, long)]
+    pub all: bool,
+
+    /// Filter projects by phase (e.g. 'plan', 'build', 'verify')
+    #[arg(short, long)]
+    pub filter: Option<String>,
+
+    /// Output JSON array of project summaries
     #[arg(long)]
     pub json: bool,
 }
@@ -88,4 +117,18 @@ pub enum TaskSubcommands {
     Done { task_id: String },
     /// Add a new task to .aiflow/tasks.md
     Add { title: String },
+}
+
+#[derive(Args, Debug)]
+pub struct TestArgs {
+    #[command(subcommand)]
+    pub action: Option<TestSubcommands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum TestSubcommands {
+    /// Run project tests and update cache
+    Run,
+    /// View last cached test status
+    Status,
 }

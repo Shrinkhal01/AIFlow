@@ -1,12 +1,15 @@
 mod cli;
+mod config;
+mod discovery;
 mod doctor;
 mod domain;
 mod fsm;
 mod git;
 mod storage;
+mod tester;
 
 use clap::Parser;
-use cli::{Cli, Commands, PhaseSubcommands, TaskSubcommands};
+use cli::{Cli, Commands, PhaseSubcommands, TaskSubcommands, TestSubcommands};
 use domain::CompletedPhase;
 use fsm::{compute_next_action, find_phase};
 use git::inspect_git;
@@ -23,8 +26,10 @@ fn main() {
         Commands::Init(init_args) => handle_init(&current_dir, &init_args),
         Commands::Status(status_args) => handle_status(&current_dir, status_args.json),
         Commands::Next => handle_next(&current_dir),
+        Commands::Projects(projects_args) => handle_projects(&current_dir, &projects_args),
         Commands::Phase(phase_args) => handle_phase(&current_dir, &phase_args.action),
         Commands::Task(task_args) => handle_task(&current_dir, task_args.action),
+        Commands::Test(test_args) => handle_test(&current_dir, test_args.action),
         Commands::Doctor => {
             doctor::run_doctor(&current_dir);
         }
@@ -32,7 +37,7 @@ fn main() {
 }
 
 /// Auto-detect project programming language from repository files
-fn detect_language(root: &Path) -> &'static str {
+pub fn detect_language(root: &Path) -> &'static str {
     if root.join("Cargo.toml").exists() {
         "rust"
     } else if root.join("go.mod").exists() {
@@ -98,6 +103,8 @@ fn handle_status(root: &Path, json: bool) {
     let git = inspect_git(root).unwrap_or_default();
     let tasks = load_tasks(root).unwrap_or_default();
     let next_action = compute_next_action(&workflow, &state, &git, &tasks, root);
+    let test_cached = tester::load_cached_test_result(root);
+    let detected_runner = tester::detect_test_runner(root);
 
     if json {
         let json_output = serde_json::json!({
@@ -112,6 +119,7 @@ fn handle_status(root: &Path, json: bool) {
             },
             "tasks_count": tasks.len(),
             "tasks_completed": tasks.iter().filter(|t| t.completed).count(),
+            "test_result": test_cached,
             "next_action": {
                 "summary": next_action.summary,
                 "role": next_action.assigned_role.to_string(),
@@ -164,6 +172,25 @@ fn handle_status(root: &Path, json: bool) {
         println!("  Active Task:  {}: {}", active.id.cyan(), active.title);
     }
 
+    // Test Suite Evidence
+    if test_cached.is_some() || detected_runner.is_some() {
+        println!("\n{}", "Test Suite Evidence:".bold());
+        if let Some(res) = test_cached {
+            let status_badge = if res.passed {
+                "PASSED".green().bold().to_string()
+            } else {
+                format!("FAILED (code {})", res.exit_code).red().bold().to_string()
+            };
+            println!("  Runner:       {}", res.command.cyan());
+            println!("  Status:       {}", status_badge);
+            println!("  Executed:     {}", res.executed_at.dimmed());
+        } else if let Some(runner) = detected_runner {
+            println!("  Runner:       {} (detected)", runner.display_name().cyan());
+            println!("  Status:       {}", "No test run recorded yet".yellow());
+            println!("  Command:      {}", "aiflow test run".cyan());
+        }
+    }
+
     // Next Action
     println!("\n{}", "Next Logical Action:".bold().yellow());
     println!("  → {}", next_action.summary.bold());
@@ -196,6 +223,55 @@ fn handle_next(root: &Path) {
     println!("  Command:       {}", next_action.recommended_command.cyan().bold());
     println!("  Assigned Role: {}", next_action.assigned_role.to_string().magenta());
     println!("  Why:           {}\n", next_action.explanation.dimmed());
+}
+
+fn handle_projects(current_dir: &Path, args: &cli::ProjectsArgs) {
+    let mut roots: Vec<PathBuf> = Vec::new();
+
+    if let Some(ref custom_root) = args.root {
+        roots.push(PathBuf::from(custom_root));
+    } else {
+        let cfg = config::load_or_init_global_config();
+        for r in cfg.workspace_roots {
+            let pb = PathBuf::from(r);
+            if pb.exists() {
+                roots.push(pb);
+            }
+        }
+        // Also ensure current directory or parent directory is covered
+        if let Some(parent) = current_dir.parent() {
+            if !roots.iter().any(|r| parent.starts_with(r)) {
+                roots.push(parent.to_path_buf());
+            }
+        } else if !roots.iter().any(|r| current_dir.starts_with(r)) {
+            roots.push(current_dir.to_path_buf());
+        }
+    }
+
+    let summaries = discovery::discover_projects(&roots, args.depth);
+
+    if args.json {
+        let filtered: Vec<&discovery::ProjectSummary> = summaries
+            .iter()
+            .filter(|p| {
+                if !args.all && !p.is_aiflow_initialized {
+                    return false;
+                }
+                if let Some(ref filter) = args.filter {
+                    if let Some(ref phase) = p.phase {
+                        return phase.eq_ignore_ascii_case(filter);
+                    } else {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&filtered).unwrap());
+        return;
+    }
+
+    discovery::render_projects_table(&summaries, args.all, args.filter.as_deref());
 }
 
 fn handle_phase(root: &Path, action: &PhaseSubcommands) {
@@ -294,5 +370,54 @@ fn handle_task(root: &Path, action: Option<TaskSubcommands>) {
             Ok(id) => println!("{} Added task {} in .aiflow/tasks.md", "✓".green(), id.cyan()),
             Err(e) => eprintln!("Error adding task: {}", e),
         },
+    }
+}
+
+fn handle_test(root: &Path, action: Option<TestSubcommands>) {
+    let action = action.unwrap_or(TestSubcommands::Run);
+
+    match action {
+        TestSubcommands::Run => {
+            match tester::run_tests(root) {
+                Ok(result) => {
+                    println!("\n{}", "Test Execution Summary:".bold());
+                    println!("  Runner:       {}", result.command.cyan());
+                    let status_badge = if result.passed {
+                        "PASSED".green().bold().to_string()
+                    } else {
+                        format!("FAILED (code {})", result.exit_code).red().bold().to_string()
+                    };
+                    println!("  Result:       {}", status_badge);
+                    println!("  Recorded At:  {}", result.executed_at.dimmed());
+                    println!("  Cache:        .aiflow/.cache/test_results.json\n");
+                    if !result.passed {
+                        std::process::exit(result.exit_code);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{} Failed to run tests: {}", "Error:".red().bold(), e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        TestSubcommands::Status => {
+            if let Some(res) = tester::load_cached_test_result(root) {
+                println!("\n{}", "Last Recorded Test Results:".bold());
+                println!("  Runner:       {}", res.command.cyan());
+                let status_badge = if res.passed {
+                    "PASSED".green().bold().to_string()
+                } else {
+                    format!("FAILED (code {})", res.exit_code).red().bold().to_string()
+                };
+                println!("  Result:       {}", status_badge);
+                println!("  Recorded At:  {}", res.executed_at.dimmed());
+                println!("  Summary:      {}\n", res.message);
+            } else if let Some(runner) = tester::detect_test_runner(root) {
+                println!("\nDetected test runner: {}", runner.display_name().cyan());
+                println!("No cached test run found. Run '{}' to execute.", "aiflow test run".bold().cyan());
+            } else {
+                println!("\nNo recognized test runner found in this project.");
+            }
+        }
     }
 }
