@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "aiflow",
     author = "Shrinkhal",
-    version = "0.2.0",
+    version = "0.3.0",
     about = "Local developer workflow and project-tracking CLI for AI-assisted development",
     long_about = "A local-first, Git-native developer control plane that tracks repository development phases, tasks, and next actions."
 )]
@@ -36,6 +36,9 @@ pub enum Commands {
     /// Run test suite and record cached evidence
     Test(TestArgs),
 
+    /// View or switch active AI subscription stack (Claude Architect, Claude Coder, All-Claude)
+    Stack(StackArgs),
+
     /// Run health check verifying repository structure and state
     Doctor,
 }
@@ -53,6 +56,10 @@ pub struct InitArgs {
     /// Primary programming language (defaults to auto-detected)
     #[arg(short, long)]
     pub lang: Option<String>,
+
+    /// AI subscription stack ('claude-architect', 'claude-coder', 'all-claude')
+    #[arg(short, long)]
+    pub stack: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -131,4 +138,18 @@ pub enum TestSubcommands {
     Run,
     /// View last cached test status
     Status,
+}
+
+#[derive(Args, Debug)]
+pub struct StackArgs {
+    #[command(subcommand)]
+    pub action: Option<StackSubcommands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum StackSubcommands {
+    /// List available AI subscription stacks
+    List,
+    /// Switch active AI stack ('claude-architect', 'claude-coder', 'all-claude')
+    Set { stack_id: String },
 }

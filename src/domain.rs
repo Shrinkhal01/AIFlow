@@ -145,6 +145,89 @@ impl WorkflowConfig {
     }
 }
 
+fn default_ai_stack() -> String {
+    "claude-architect".to_string()
+}
+
+/// Predefined AI Subscription Stacks
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AIStackPreset {
+    ClaudeArchitect,
+    ClaudeCoder,
+    AllClaude,
+}
+
+impl AIStackPreset {
+    pub fn id(&self) -> &'static str {
+        match self {
+            AIStackPreset::ClaudeArchitect => "claude-architect",
+            AIStackPreset::ClaudeCoder => "claude-coder",
+            AIStackPreset::AllClaude => "all-claude",
+        }
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            AIStackPreset::ClaudeArchitect => "Claude Architect + Codex Coder",
+            AIStackPreset::ClaudeCoder => "ChatGPT Planner + Claude Pro Coder",
+            AIStackPreset::AllClaude => "All-Claude Stack (Claude Pro)",
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            AIStackPreset::ClaudeArchitect => "Claude 3.7 (Specs/Plan) → Codex/Cursor (Coding) → Gemini (Review)",
+            AIStackPreset::ClaudeCoder => "ChatGPT o3/4o (Specs/Plan) → Claude Code Pro (Coding) → Gemini (Review)",
+            AIStackPreset::AllClaude => "Claude 3.7 (Specs/Plan) → Claude Code Pro (Coding) → Gemini (Review)",
+        }
+    }
+
+    pub fn roles(&self) -> HashMap<String, String> {
+        let mut roles = HashMap::new();
+        match self {
+            AIStackPreset::ClaudeArchitect => {
+                roles.insert("architect".to_string(), "claude-3-7-sonnet".to_string());
+                roles.insert("implementer".to_string(), "codex-cursor".to_string());
+                roles.insert("reviewer".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("tester".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("approver".to_string(), "human".to_string());
+            }
+            AIStackPreset::ClaudeCoder => {
+                roles.insert("architect".to_string(), "chatgpt-o3".to_string());
+                roles.insert("implementer".to_string(), "claude-code".to_string());
+                roles.insert("reviewer".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("tester".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("approver".to_string(), "human".to_string());
+            }
+            AIStackPreset::AllClaude => {
+                roles.insert("architect".to_string(), "claude-3-7-sonnet".to_string());
+                roles.insert("implementer".to_string(), "claude-code".to_string());
+                roles.insert("reviewer".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("tester".to_string(), "gemini-2.5-pro".to_string());
+                roles.insert("approver".to_string(), "human".to_string());
+            }
+        }
+        roles
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id.to_lowercase().replace('_', "-").as_str() {
+            "claude-architect" | "1" => Some(AIStackPreset::ClaudeArchitect),
+            "claude-coder" | "claude-pro" | "2" => Some(AIStackPreset::ClaudeCoder),
+            "all-claude" | "3" => Some(AIStackPreset::AllClaude),
+            _ => None,
+        }
+    }
+
+    pub fn all() -> &'static [AIStackPreset] {
+        &[
+            AIStackPreset::ClaudeArchitect,
+            AIStackPreset::ClaudeCoder,
+            AIStackPreset::AllClaude,
+        ]
+    }
+}
+
 /// Project identity metadata (.aiflow/project.yaml)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectConfig {
@@ -152,26 +235,40 @@ pub struct ProjectConfig {
     pub version: String,
     pub description: String,
     pub language: String,
+    #[serde(default = "default_ai_stack")]
+    pub ai_stack: String,
     #[serde(default)]
     pub roles: HashMap<String, String>,
 }
 
 impl ProjectConfig {
-    pub fn default_for(name: &str, language: &str) -> Self {
-        let mut roles = HashMap::new();
-        roles.insert("architect".to_string(), "claude-3-7-sonnet".to_string());
-        roles.insert("implementer".to_string(), "codex".to_string());
-        roles.insert("reviewer".to_string(), "gemini-2.5-pro".to_string());
-        roles.insert("tester".to_string(), "gemini-2.5-pro".to_string());
-        roles.insert("approver".to_string(), "human".to_string());
-
+    pub fn new(name: &str, language: &str, stack_id: &str) -> Self {
+        let preset = AIStackPreset::from_id(stack_id).unwrap_or(AIStackPreset::ClaudeArchitect);
         Self {
             name: name.to_string(),
             version: "0.1.0".to_string(),
             description: format!("Project {} tracked by AIFlow", name),
             language: language.to_string(),
-            roles,
+            ai_stack: preset.id().to_string(),
+            roles: preset.roles(),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn default_for(name: &str, language: &str) -> Self {
+        Self::new(name, language, "claude-architect")
+    }
+
+    pub fn set_stack(&mut self, stack_id: &str) -> Result<AIStackPreset, String> {
+        let preset = AIStackPreset::from_id(stack_id).ok_or_else(|| {
+            format!(
+                "Unknown stack '{}'. Available: 'claude-architect', 'claude-coder', 'all-claude'",
+                stack_id
+            )
+        })?;
+        self.ai_stack = preset.id().to_string();
+        self.roles = preset.roles();
+        Ok(preset)
     }
 }
 
@@ -227,4 +324,38 @@ pub struct GitInfo {
     pub modified_count: usize,
     pub untracked_count: usize,
     pub last_commit_message: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stack_presets() {
+        let presets = AIStackPreset::all();
+        assert_eq!(presets.len(), 3);
+
+        let p1 = AIStackPreset::from_id("claude-architect").unwrap();
+        assert_eq!(p1, AIStackPreset::ClaudeArchitect);
+        let roles1 = p1.roles();
+        assert!(roles1.get("architect").unwrap().contains("claude"));
+        assert!(roles1.get("implementer").unwrap().contains("codex"));
+
+        let p2 = AIStackPreset::from_id("claude-coder").unwrap();
+        assert_eq!(p2, AIStackPreset::ClaudeCoder);
+        let roles2 = p2.roles();
+        assert!(roles2.get("architect").unwrap().contains("chatgpt"));
+        assert!(roles2.get("implementer").unwrap().contains("claude-code"));
+    }
+
+    #[test]
+    fn test_project_config_stack_switch() {
+        let mut cfg = ProjectConfig::new("test", "rust", "claude-architect");
+        assert_eq!(cfg.ai_stack, "claude-architect");
+
+        let res = cfg.set_stack("claude-coder");
+        assert!(res.is_ok());
+        assert_eq!(cfg.ai_stack, "claude-coder");
+        assert!(cfg.roles.get("architect").unwrap().contains("chatgpt"));
+    }
 }

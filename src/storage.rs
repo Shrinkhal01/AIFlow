@@ -28,13 +28,14 @@ pub fn init_project(
     preset: &str,
     project_name: &str,
     language: &str,
+    stack: &str,
 ) -> Result<(), StorageError> {
     let dir = aiflow_dir(root);
     fs::create_dir_all(&dir)?;
     fs::create_dir_all(dir.join(".cache"))?;
 
     // 1. project.yaml
-    let project_cfg = ProjectConfig::default_for(project_name, language);
+    let project_cfg = ProjectConfig::new(project_name, language, stack);
     let project_yaml = serde_yaml::to_string(&project_cfg)?;
     fs::write(dir.join("project.yaml"), project_yaml)?;
 
@@ -127,6 +128,14 @@ pub fn save_state(root: &Path, state: &ProjectState) -> Result<(), StorageError>
     let dir = aiflow_dir(root);
     let state_yaml = serde_yaml::to_string(state)?;
     fs::write(dir.join("state.yaml"), state_yaml)?;
+    Ok(())
+}
+
+/// Save project.yaml
+pub fn save_project_config(root: &Path, config: &ProjectConfig) -> Result<(), StorageError> {
+    let dir = aiflow_dir(root);
+    let project_yaml = serde_yaml::to_string(config)?;
+    fs::write(dir.join("project.yaml"), project_yaml)?;
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "aiflow"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Shrinkhal <shrinkhal@example.com>"]
 description = "Local developer workflow and project-tracking CLI for software developers who use AI coding agents"

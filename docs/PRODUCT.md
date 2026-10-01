@@ -61,7 +61,16 @@ AIFlow enforces a clear division of labor, mapping each phase of development to 
 - **Gemini (The Reviewer & Tester):** Independent adversarial code review, test suite generation, test coverage analysis, context-wide verification.
 - **Human Developer (The Lead):** Defining requirements, architectural approval, final review, and validating the implementation.
 
-*(Note: While these are recommended defaults, roles are fully configurable to prevent vendor lock-in.)*
+### 2.1. AI Subscription Stacks (Adaptive Role Profiles)
+Because developers frequently juggle different active AI subscriptions (e.g., Claude Pro vs. ChatGPT Plus/Team vs. Cursor Pro), AIFlow provides three plug-and-play **AI Subscription Stacks**:
+
+| Stack Preset | Architect / Planner | Implementer / Coder | Reviewer / Tester | Best Suited For |
+| :--- | :--- | :--- | :--- | :--- |
+| **`claude-architect`** *(Default)* | **Claude 3.7 Sonnet** | **Codex / Cursor IDE** | **Gemini 2.5 Pro** | Standard setup using Claude for specs and Cursor/Codex for writing code. |
+| **`claude-coder`** | **ChatGPT (o3 / GPT-4o)** | **Claude Code Pro** | **Gemini 2.5 Pro** | Heavy terminal development when user has a Claude Pro subscription using `claude` CLI. |
+| **`all-claude`** | **Claude 3.7 Sonnet** | **Claude Code Pro** | **Gemini 2.5 Pro** | All-in Claude Pro users using Sonnet for both high-level design and terminal coding. |
+
+Users can select their stack during `aiflow init` or switch anytime with `aiflow stack set <name>`. `aiflow status` and `aiflow next` automatically adapt their instructions, commands, and prompts based on the active stack.
 
 ### 3. Git as the Primary Source of Truth
 Developers should never have to manually update a database or fill out forms to tell AIFlow what they are doing. AIFlow automatically deduces project status by inspecting Git branches (`phase/*`, `feat/*`), uncommitted file changes, commit messages, recent file modifications, test outputs, and project artifacts.
