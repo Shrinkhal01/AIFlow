@@ -234,6 +234,8 @@ Tracked repositories contain a dedicated `.aiflow/` directory:
 
 Detailed design documents are maintained in the [`docs/`](docs/) directory:
 
+- [**AIFlow Case Study & Architecture (PDF)**](AIFlow_Case_Study_and_Architecture.pdf): Complete whitepaper and architectural case study covering problem statement, implementation, AI stacks, and real-world workflows.
+- [**docs/CASE_STUDY.md**](docs/CASE_STUDY.md): Markdown version of the AIFlow architecture and case study.
 - [**docs/PRODUCT.md**](docs/PRODUCT.md): Comprehensive product vision, personas, scope boundaries, and core concepts.
 - [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md): Technology stack justification (Rust), layered modular design, data models, state heuristics, and test harness.
 - [**docs/REQUIREMENTS.md**](docs/REQUIREMENTS.md): Functional and non-functional requirements, ambiguity resolutions, and technical risks.
