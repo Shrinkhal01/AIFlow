@@ -1,0 +1,18 @@
+[package]
+name = "aiflow"
+version = "0.1.0"
+edition = "2021"
+authors = ["Shrinkhal <shrinkhal@example.com>"]
+description = "Local developer workflow and project-tracking CLI for software developers who use AI coding agents"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+comfy-table = "7.1"
+owo-colors = "4.0"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"

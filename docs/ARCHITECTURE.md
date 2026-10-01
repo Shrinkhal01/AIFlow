@@ -34,6 +34,15 @@ To ensure AIFlow achieves open-source excellence, lightning-fast execution, and 
 3. **World-Class CLI & Git Ecosystem:** The modern terminal tooling revolution (e.g. `ripgrep`, `bat`, `delta`, `starship`, `git-cliff`, `jujutsu`) is built in Rust. Crates such as `clap` (v4 with derive macros), `ratatui` / `crossterm`, `comfy-table`, `serde`, and `ignore` provide unparalleled speed and aesthetic capabilities.
 4. **Compile-Time State Machine Guarantees:** Rust’s rich type system (algebraic enums, pattern matching, `Result<T, E>`) makes invalid state transitions mathematically impossible at compile time, eliminating runtime crashes.
 
+### 1.3. Keeping Rust Simple & AI-Friendly (Lean Architecture for Solo Developers)
+
+Because you are exploring Rust for the first time and collaborating with AI tools (ChatGPT, Claude, Codex):
+- **Zero Async Complexity:** We do NOT use `tokio` or async runtimes. AIFlow is a synchronous CLI tool executing fast filesystem and git operations in memory. This eliminates complex lifetime and async-trait headaches.
+- **Minimal, Focused Dependency Tree:** We stick strictly to proven, idiomatic crates (`clap` for CLI, `serde`/`serde_yaml` for config, `comfy-table` for tables, `owo-colors` for styling).
+- **Small, Modular Source Files:** Every module is intentionally kept between 80 to 200 lines. This ensures ChatGPT can ingest, generate, debug, and explain any single file in a single chat turn without truncation or token exhaustion.
+- **Procedural Clarity over Macro Magic:** Avoid nested custom macros. Use straightforward `match` statements and standard `Result<T, MyError>` idioms that are easy to read and understand.
+- **Estimated MVP Footprint:** The entire working MVP is designed to be **under 1,000 lines of clean Rust**, making it approachable, maintainable, and completely transparent.
+
 ---
 
 ## 2. Layered Modular Architecture
@@ -220,84 +229,53 @@ roles:
   reviewer: "gemini-2.5-pro"
 ```
 
-### 4.3. Workflow State Machine Definition (`.aiflow/workflow.yaml`)
+### 4.3. Default Workflow Definition: 5-Phase Standard (`.aiflow/workflow.yaml`)
 ```yaml
 version: "1.0"
-name: "Standard AI-Assisted SDD"
-initial_phase: "requirements"
+name: "Standard AI Workflow"
+preset: "standard"
+initial_phase: "specify"
 
 phases:
-  - id: "requirements"
-    name: "Requirements"
-    role: "approver"
-    required_artifacts: [".aiflow/requirements.md"]
-    requires_human_approval: true
-    next_phase: "research"
-
-  - id: "research"
-    name: "Research"
+  - id: "specify"
+    name: "Specify"
     role: "architect"
-    required_artifacts: []
-    requires_human_approval: false
-    next_phase: "architecture"
-
-  - id: "architecture"
-    name: "Architecture"
-    role: "architect"
-    required_artifacts: [".aiflow/architecture.md"]
+    required_artifacts: [".aiflow/spec.md"]
     requires_human_approval: true
-    next_phase: "planning"
+    next_phase: "plan"
 
-  - id: "planning"
-    name: "Planning"
+  - id: "plan"
+    name: "Plan"
     role: "architect"
-    required_artifacts: [".aiflow/plan.md"]
-    requires_human_approval: true
-    next_phase: "tasks"
-
-  - id: "tasks"
-    name: "Tasks"
-    role: "implementer"
     required_artifacts: [".aiflow/tasks.md"]
     requires_human_approval: false
-    next_phase: "implementation"
+    next_phase: "build"
 
-  - id: "implementation"
-    name: "Implementation"
+  - id: "build"
+    name: "Build"
     role: "implementer"
     required_artifacts: []
     requires_human_approval: false
-    next_phase: "testing"
+    next_phase: "verify"
 
-  - id: "testing"
-    name: "Testing"
+  - id: "verify"
+    name: "Verify"
     role: "tester"
     preconditions:
       - "all_tasks_completed"
       - "test_suite_passing"
-    requires_human_approval: false
-    next_phase: "review"
-
-  - id: "review"
-    name: "Code Review"
-    role: "reviewer"
     requires_human_approval: true
-    next_phase: "documentation"
+    next_phase: "ship"
 
-  - id: "documentation"
-    name: "Documentation"
-    role: "reviewer"
-    preconditions:
-      - "documentation_up_to_date"
-    requires_human_approval: false
-    next_phase: "release"
-
-  - id: "release"
-    name: "Release"
+  - id: "ship"
+    name: "Ship"
     role: "approver"
     requires_human_approval: true
     next_phase: null
 ```
+*(Presets available: `--preset standard` (default 5 phases), `--preset lean` (4 phases), `--preset rigorous` (10 phases)).*
+
+
 
 ### 4.4. Durable Project State (`.aiflow/state.yaml`)
 ```yaml
@@ -435,17 +413,11 @@ Project:      Autonomous Navigation (python)
 Location:     /Users/shrinkhals/Projects/autonomous-nav
 Last Active:  12 minutes ago (commit 8f3c1b2)
 
-Workflow Progress:
-  ✓ 1. Requirements       (Approved by Human)
-  ✓ 2. Research           (Completed by Claude)
-  ✓ 3. Architecture       (Approved by Human)
-  ✓ 4. Planning           (Approved by Human)
-  ✓ 5. Tasks              (5 defined, 3 complete)
-  → 6. Implementation     [ACTIVE - Codex]
-  ○ 7. Testing
-  ○ 8. Code Review
-  ○ 9. Documentation
-  ○ 10. Release
+Workflow Progress (Preset: Lean):
+  ✓ 1. Plan           (Architecture & Scope approved by Human)
+  → 2. Build          [ACTIVE - Codex: TASK-04]
+  ○ 3. Verify         (Tests & Code Review)
+  ○ 4. Ship           (Docs & Release)
 
 Git Status:
   Branch:       phase/02-object-detection

@@ -71,44 +71,55 @@ AIFlow operates entirely on the local machine. It stores zero proprietary source
 
 ---
 
-## 3. The Canonical Development Workflow
+## 3. Pragmatic Workflow Design & Presets
 
-While AIFlow supports configurable state machines, it ships with a battle-tested 10-phase canonical workflow:
+To strike the perfect balance between architectural rigor and developer velocity, AIFlow provides **Workflow Presets**, featuring the **5-Phase Workflow (`Specify` → `Plan` → `Build` → `Verify` → `Ship`) as the primary default**:
+
+### 3.1. The Default: 5-Phase Workflow
+Ideal for solo developers and teams building with AI agents who need clear architectural and task specifications without 10-phase bureaucracy:
 
 ```mermaid
-flowchart TD
-    Req([1. Requirements]) --> Res([2. Research])
-    Res --> Arch([3. Architecture])
-    Arch --> Plan([4. Planning])
-    Plan --> Tasks([5. Tasks])
-    Tasks --> Impl([6. Implementation])
-    Impl --> Test([7. Testing])
-    Test --> Review([8. Code Review])
-    Review --> Docs([9. Documentation])
-    Docs --> Rel([10. Release])
+flowchart LR
+    Spec([1. Specify]) --> Plan([2. Plan])
+    Plan --> Build([3. Build])
+    Build --> Verify([4. Verify])
+    Verify --> Ship([5. Ship])
 
-    style Req fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#fff
-    style Arch fill:#1f2937,stroke:#a855f7,stroke-width:2px,color:#fff
-    style Impl fill:#1f2937,stroke:#10b981,stroke-width:2px,color:#fff
-    style Test fill:#1f2937,stroke:#f59e0b,stroke-width:2px,color:#fff
-    style Review fill:#1f2937,stroke:#ec4899,stroke-width:2px,color:#fff
-    style Rel fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style Spec fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#fff
+    style Plan fill:#1f2937,stroke:#a855f7,stroke-width:2px,color:#fff
+    style Build fill:#1f2937,stroke:#10b981,stroke-width:2px,color:#fff
+    style Verify fill:#1f2937,stroke:#f59e0b,stroke-width:2px,color:#fff
+    style Ship fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#fff
 ```
 
-### Phase Definitions and Role Allocation
+| Phase | Scope & Objective | Primary Artifact | Assigned Role & AI Agent | Human Approval Gate |
+| :--- | :--- | :--- | :--- | :---: |
+| **1. Specify** | Requirements, system design, scope, and technical tradeoffs | `.aiflow/spec.md` | **Architect (Claude + Human)** | **Required** (Spec signoff) |
+| **2. Plan** | Milestone planning and granular task checklist | `.aiflow/tasks.md` | **Lead / Architect (Claude)** | Optional |
+| **3. Build** | Feature implementation, refactoring, code authoring | Source code (`src/`, etc.) | **Implementer (Codex / Cursor)** | Continuous |
+| **4. Verify** | Test suite execution, adversarial review, edge-case audit | Test results & review report | **Reviewer & Tester (Gemini)** | **Required** (Verification signoff) |
+| **5. Ship** | Documentation updates, README refresh, git tagging | `README.md`, Release tag | **Release Lead (Human)** | **Required** (Final release) |
 
-| Phase | Objective | Primary Artifact | Default Role | Assigned Agent | Human Gate |
-| :--- | :--- | :--- | :--- | :--- | :---: |
-| **1. Requirements** | Define problem, scope, user stories, and acceptance criteria | `.aiflow/requirements.md` | Product / Lead | **Human Developer** | **Required** |
-| **2. Research** | Evaluate dependencies, existing libraries, APIs, and prior art | `.aiflow/research.md` | Architect | **Claude** | Optional |
-| **3. Architecture** | System design, components, interfaces, data models, ADRs | `.aiflow/architecture.md` | Architect | **Claude** | **Required** |
-| **4. Planning** | Milestone definitions, phasing strategy, risk assessment | `.aiflow/plan.md` | Architect / Lead | **Claude + Human** | **Required** |
-| **5. Tasks** | Granular, executable task list with clear completion criteria | `.aiflow/tasks.md` | Implementer | **Claude / Codex** | Optional |
-| **6. Implementation**| Writing feature code, internal refactoring, bug fixes | Source code (`src/`, etc.)| Implementer | **Codex** | Continuous |
-| **7. Testing** | Unit, integration, and regression test suites | Test suites (`tests/`, etc.)| Tester | **Gemini + Codex** | Automated |
-| **8. Code Review** | Adversarial review, linting, security and design audit | Review report / comments | Reviewer | **Gemini + Claude**| **Required** |
-| **9. Documentation** | Updating README, user manuals, API docs, changelog | `README.md`, `docs/` | Technical Writer | **Gemini / Claude**| Optional |
-| **10. Release** | Tagging, changelog release notes, build artifact verification| Git tag, release notes | Release Engineer | **Human Developer** | **Required** |
+#### Why the 5-Phase Model is the Sweet Spot:
+1. **Preserves Complete Architectural Rigor:** Separates the high-level system design (`spec.md`) from the executable task breakdown (`tasks.md`). You never lose the architectural details or context.
+2. **Clear Cognitive Role Alignment:**
+   - **Claude** authors the architecture and requirements in `Specify`.
+   - **Codex** executes the implementation in `Build`.
+   - **Gemini** conducts adversarial review and verifies test coverage in `Verify`.
+   - **Human Developer** approves the architectural spec and authorizes shipping.
+3. **Zero Clutter:** Operates with just 2 focused markdown files (`.aiflow/spec.md` and `.aiflow/tasks.md`) plus clean YAML metadata.
+
+---
+
+### 3.2. Configurable Presets
+
+Users can switch presets in `.aiflow/workflow.yaml` or when running `aiflow init --preset <name>`:
+
+| Preset Name | Number of Phases | Typical Use Case | Phases Included |
+| :--- | :---: | :--- | :--- |
+| **`standard`** *(Default)* | **5** | Balanced rigor & velocity | `Specify` → `Plan` → `Build` → `Verify` → `Ship` |
+| **`lean`** | **4** | Rapid prototyping & small scripts | `Plan` → `Build` → `Verify` → `Ship` |
+| **`rigorous`** | **10** | High-assurance, multi-team enterprise | `Requirements` → `Research` → `Architecture` → `Planning` → `Tasks` → `Implementation` → `Testing` → `Code Review` → `Documentation` → `Release` |
 
 ---
 

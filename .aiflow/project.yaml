@@ -1,0 +1,10 @@
+name: AIFlow
+version: 0.1.0
+description: Project AIFlow tracked by AIFlow
+language: rust
+roles:
+  tester: gemini-2.5-pro
+  reviewer: gemini-2.5-pro
+  architect: claude-3-7-sonnet
+  approver: human
+  implementer: codex

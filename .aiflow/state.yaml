@@ -1,0 +1,8 @@
+version: '1.0'
+current_phase: plan
+phase_started_at: 2026-10-01T11:45:27.071265+00:00
+completed_phases:
+- phase: specify
+  completed_at: 2026-10-01T11:45:27.071174+00:00
+  approved_by: human
+active_task_id: null
