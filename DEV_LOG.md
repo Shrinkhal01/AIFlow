@@ -5,7 +5,8 @@ This document tracks all design decisions, toolchain configurations, milestones 
 ---
 
 ## Current Status Overview
-- **Active Phase:** Milestone 1 (MVP Single-Repo Flight Controller) — **COMPLETED & OPERATIONAL**
+- **Active Phase:** Milestone 1 (MVP Single-Repo Flight Controller) — **RELEASED (v0.1.0)**
+- **Release Tag:** `v0.1.0`
 - **Language / Toolchain:** Rust 1.98.1 (Apple Silicon `aarch64-apple-darwin`), Cargo, Git 2.55.0
 - **Workflow Preset:** 5-Phase Standard (`Specify` → `Plan` → `Build` → `Verify` → `Ship`)
 - **Codebase Size:** ~780 lines of clean, synchronous, warning-free Rust.
