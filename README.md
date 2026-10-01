@@ -1,6 +1,6 @@
 # AIFlow
 
-[![Version: v0.1.0 (MVP Operational)](https://img.shields.io/badge/Version-v0.1.0%20(MVP%20Operational)-success?style=for-the-badge)](#quickstart)
+[![Version: v0.3.0 (Operational)](https://img.shields.io/badge/Version-v0.3.0-success?style=for-the-badge)](#quickstart)
 [![License: MIT / Apache 2.0](https://img.shields.io/badge/License-MIT%20%2F%20Apache%202.0-blue?style=for-the-badge)](#license)
 [![Target: macOS & Linux](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon)%20%7C%20Linux-black?style=for-the-badge&logo=apple)](#technology-stack)
 
@@ -24,25 +24,36 @@ cargo install --path .
 Navigate to any project directory on your machine and let AIFlow guide your development:
 
 ```bash
-# Step 1: Initialize AIFlow (auto-detects language and sets up 5-phase workflow)
+# Step 1: Initialize AIFlow (interactively select your AI Subscription Stack)
 cd ~/Projects/my-app
 aiflow init
 
-# Step 2: Check current development phase, tasks, and Git status
+# Step 2: Check current development phase, tasks, test evidence, and Git status
 aiflow status
 
-# Step 3: Get immediate advice on the next action and assigned AI role
+# Step 3: View or switch active AI Subscription Stack anytime
+aiflow stack
+aiflow stack set claude-coder   # Switch to ChatGPT Planner + Claude Code Pro Coder
+
+# Step 4: Run auto-detected test suite & cache pass/fail evidence
+aiflow test run
+
+# Step 5: Get immediate advice on the next action and assigned AI role
 aiflow next
 
-# Step 4: Manage tasks in .aiflow/tasks.md
+# Step 6: Multi-repository fleet dashboard across your whole workspace
+aiflow projects
+aiflow projects --all
+
+# Step 7: Manage tasks in .aiflow/tasks.md
 aiflow task list
 aiflow task done TASK-01
 aiflow task add "Implement auth middleware"
 
-# Step 5: Advance phases once approved
+# Step 8: Advance phases once approved
 aiflow phase complete
 
-# Step 6: Verify repository consistency and health
+# Step 9: Verify repository consistency and health
 aiflow doctor
 ```
 
@@ -246,10 +257,10 @@ Detailed design documents are maintained in the [`docs/`](docs/) directory:
 ## Development Roadmap
 
 - [x] **Phase 0: Architecture & RFC Review** — Specifications, competitive research, and state machine design.
-- [x] **Phase 1: MVP Core (v0.1.0)** — Single-repo `init`, `status`, `next`, `phase`, `task`, `doctor`, and Git state detection. *(Completed & Operational)*
-- [ ] **Phase 2: Multi-Project Tracking (v0.2.0)** — `aiflow projects` multi-repo dashboard and workspace discovery.
-- [ ] **Phase 3: Test Runners (v0.3.0)** — Pluggable test runner adapters (pytest, cargo, npm, go).
-- [ ] **Phase 4: Agent Roles & Prompt Scaffolding (v0.4.0)** — Prompt scaffolding (`aiflow prompt`) and doc staleness engine.
+- [x] **Phase 1: MVP Core (v0.1.0)** — Single-repo `init`, `status`, `next`, `phase`, `task`, `doctor`, and Git state detection. *(Completed)*
+- [x] **Phase 2: Multi-Project Tracking (v0.2.0)** — `aiflow projects` multi-repo dashboard and workspace discovery. *(Completed)*
+- [x] **Phase 3: AI Subscription Stacks & Test Runners (v0.3.0)** — 3 preset AI stacks (`aiflow stack`) and test runner integration (`aiflow test`). *(Completed)*
+- [ ] **Phase 4: Agent Prompt Scaffolding (v0.4.0)** — Context prompt generator (`aiflow prompt`) and doc staleness engine.
 - [ ] **Phase 5: Public Distribution (v1.0.0)** — Homebrew tap, CI/CD, and binary releases.
 
 ---

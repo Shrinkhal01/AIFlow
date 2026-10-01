@@ -9,14 +9,18 @@ mod storage;
 mod tester;
 
 use clap::Parser;
-use cli::{Cli, Commands, PhaseSubcommands, TaskSubcommands, TestSubcommands};
-use domain::CompletedPhase;
+use cli::{Cli, Commands, PhaseSubcommands, StackSubcommands, TaskSubcommands, TestSubcommands};
+use domain::{AIStackPreset, CompletedPhase};
 use fsm::{compute_next_action, find_phase};
 use git::inspect_git;
 use owo_colors::OwoColorize;
 use std::env;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use storage::{add_task, init_project, is_initialized, load_project_bundle, load_tasks, mark_task_done, save_state};
+use storage::{
+    add_task, init_project, is_initialized, load_project_bundle, load_tasks, mark_task_done,
+    save_project_config, save_state,
+};
 
 fn main() {
     let args = Cli::parse();
@@ -30,6 +34,7 @@ fn main() {
         Commands::Phase(phase_args) => handle_phase(&current_dir, &phase_args.action),
         Commands::Task(task_args) => handle_task(&current_dir, task_args.action),
         Commands::Test(test_args) => handle_test(&current_dir, test_args.action),
+        Commands::Stack(stack_args) => handle_stack(&current_dir, stack_args.action),
         Commands::Doctor => {
             doctor::run_doctor(&current_dir);
         }
@@ -51,6 +56,32 @@ pub fn detect_language(root: &Path) -> &'static str {
     }
 }
 
+fn prompt_select_stack() -> String {
+    println!("\n{}", "Select your active AI Subscription Setup:".bold());
+    let presets = AIStackPreset::all();
+    for (i, p) in presets.iter().enumerate() {
+        let default_tag = if i == 0 { " (Default)" } else { "" };
+        println!(
+            "  [{}] {}{}",
+            (i + 1).to_string().cyan().bold(),
+            p.display_name().bold(),
+            default_tag.dimmed()
+        );
+        println!("      Roles: {}", p.description().dimmed());
+    }
+    print!("\nEnter selection [1-3] (press Enter for default): ");
+    let _ = std::io::stdout().flush();
+
+    let mut input = String::new();
+    if std::io::stdin().read_line(&mut input).is_ok() {
+        let trimmed = input.trim();
+        if let Some(preset) = AIStackPreset::from_id(trimmed) {
+            return preset.id().to_string();
+        }
+    }
+    "claude-architect".to_string()
+}
+
 fn handle_init(root: &Path, args: &cli::InitArgs) {
     if is_initialized(root) {
         println!("{}", "AIFlow is already initialized in this repository.".yellow());
@@ -66,17 +97,24 @@ fn handle_init(root: &Path, args: &cli::InitArgs) {
     let detected_lang = detect_language(root);
     let lang = args.lang.as_deref().unwrap_or(detected_lang);
 
-    match init_project(root, &args.preset, name, lang) {
+    let stack = if let Some(ref s) = args.stack {
+        s.clone()
+    } else {
+        prompt_select_stack()
+    };
+
+    match init_project(root, &args.preset, name, lang, &stack) {
         Ok(_) => {
             println!("\n{}", "🎉 Initialized AIFlow project successfully!".green().bold());
             println!("  Project Name:  {}", name.cyan());
             println!("  Language:      {}", lang.cyan());
             println!("  Preset:        {}", args.preset.magenta());
+            println!("  AI Stack:      {}", stack.yellow().bold());
             println!("  Artifacts:     .aiflow/project.yaml, workflow.yaml, state.yaml, spec.md, tasks.md\n");
             println!("Next Steps:");
             println!("  1. View project status:    {}", "aiflow status".bold().cyan());
             println!("  2. See next action:        {}", "aiflow next".bold().cyan());
-            println!("  3. Health check:           {}\n", "aiflow doctor".bold().cyan());
+            println!("  3. Switch AI stack:        {}\n", "aiflow stack list".bold().cyan());
         }
         Err(e) => {
             eprintln!("{} Failed to initialize AIFlow: {}", "Error:".red().bold(), e);
@@ -102,7 +140,7 @@ fn handle_status(root: &Path, json: bool) {
 
     let git = inspect_git(root).unwrap_or_default();
     let tasks = load_tasks(root).unwrap_or_default();
-    let next_action = compute_next_action(&workflow, &state, &git, &tasks, root);
+    let next_action = compute_next_action(&project, &workflow, &state, &git, &tasks, root);
     let test_cached = tester::load_cached_test_result(root);
     let detected_runner = tester::detect_test_runner(root);
 
@@ -133,6 +171,11 @@ fn handle_status(root: &Path, json: bool) {
     // Terminal Display
     println!("\nProject:      {} ({})", project.name.bold(), project.language.cyan());
     println!("Location:     {}", root.display().to_string().dimmed());
+    if let Some(preset) = AIStackPreset::from_id(&project.ai_stack) {
+        println!("AI Stack:     {} ({})", preset.display_name().yellow(), preset.id().dimmed());
+    } else {
+        println!("AI Stack:     {}", project.ai_stack.yellow());
+    }
     if let Some(ref commit) = git.last_commit_message {
         println!("Last Commit:  {}", commit.dimmed());
     }
@@ -215,7 +258,7 @@ fn handle_next(root: &Path) {
 
     let git = inspect_git(root).unwrap_or_default();
     let tasks = load_tasks(root).unwrap_or_default();
-    let next_action = compute_next_action(&workflow, &state, &git, &tasks, root);
+    let next_action = compute_next_action(&project, &workflow, &state, &git, &tasks, root);
 
     println!("\n{}", format!("Next Action for {}:", project.name).bold());
     println!("  Phase:         {}", state.current_phase.yellow());
@@ -223,6 +266,68 @@ fn handle_next(root: &Path) {
     println!("  Command:       {}", next_action.recommended_command.cyan().bold());
     println!("  Assigned Role: {}", next_action.assigned_role.to_string().magenta());
     println!("  Why:           {}\n", next_action.explanation.dimmed());
+}
+
+fn handle_stack(root: &Path, action: Option<StackSubcommands>) {
+    if !is_initialized(root) {
+        eprintln!("{}", "Error: AIFlow is not initialized in this repository.".red().bold());
+        eprintln!("Run '{}' to initialize.", "aiflow init".cyan());
+        std::process::exit(1);
+    }
+
+    let (mut project, _, _) = match load_project_bundle(root) {
+        Ok(bundle) => bundle,
+        Err(e) => {
+            eprintln!("{} Failed loading project: {}", "Error:".red().bold(), e);
+            std::process::exit(1);
+        }
+    };
+
+    let action = action.unwrap_or(StackSubcommands::List);
+
+    match action {
+        StackSubcommands::List => {
+            println!("\n{}", "Available AI Subscription Stacks:".bold());
+            let presets = AIStackPreset::all();
+            for (i, p) in presets.iter().enumerate() {
+                let is_active = project.ai_stack == p.id();
+                let active_marker = if is_active {
+                    " [ACTIVE]".green().bold().to_string()
+                } else {
+                    String::new()
+                };
+                println!(
+                    "\n  [{}] {} ({}){}",
+                    (i + 1).to_string().cyan().bold(),
+                    p.display_name().bold(),
+                    p.id().yellow(),
+                    active_marker
+                );
+                println!("      {}", p.description().dimmed());
+            }
+
+            println!("\nCurrent Active Stack: {}", project.ai_stack.cyan().bold());
+            println!("Switch stack with:    {}\n", "aiflow stack set <id>".bold().cyan());
+        }
+        StackSubcommands::Set { stack_id } => {
+            match project.set_stack(&stack_id) {
+                Ok(preset) => {
+                    if let Err(e) = save_project_config(root, &project) {
+                        eprintln!("Failed saving project.yaml: {}", e);
+                    } else {
+                        println!("\n{} Active AI stack set to: {}", "✓".green(), preset.display_name().cyan().bold());
+                        println!("  Stack ID:    {}", preset.id().yellow());
+                        println!("  Workflow:    {}\n", preset.description().dimmed());
+                        println!("Run '{}' to see your new role-specific next actions.\n", "aiflow next".cyan());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{} {}", "Error:".red().bold(), e);
+                    std::process::exit(1);
+                }
+            }
+        }
+    }
 }
 
 fn handle_projects(current_dir: &Path, args: &cli::ProjectsArgs) {

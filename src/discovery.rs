@@ -103,7 +103,7 @@ fn summarize_project(path: &Path) -> ProjectSummary {
             let tasks = load_tasks(path).unwrap_or_default();
             let tasks_total = tasks.len();
             let tasks_done = tasks.iter().filter(|t| t.completed).count();
-            let next = compute_next_action(&workflow, &state, &git, &tasks, path);
+            let next = compute_next_action(&project, &workflow, &state, &git, &tasks, path);
 
             return ProjectSummary {
                 name: project.name,

@@ -2,9 +2,10 @@ name: AIFlow
 version: 0.1.0
 description: Project AIFlow tracked by AIFlow
 language: rust
+ai_stack: claude-architect
 roles:
+  architect: claude-3-7-sonnet
   tester: gemini-2.5-pro
   reviewer: gemini-2.5-pro
-  architect: claude-3-7-sonnet
+  implementer: codex-cursor
   approver: human
-  implementer: codex

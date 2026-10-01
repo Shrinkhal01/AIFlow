@@ -5,12 +5,13 @@ This document tracks all design decisions, toolchain configurations, milestones 
 ---
 
 ## Current Status Overview
-- **Active Phase:** Milestone 2 (Fleet Dashboard & Testing Integration) — **COMPLETED (v0.2.0)**
-- **Active Branch:** `milestone-2`
+- **Active Phase:** Milestone 3 (AI Subscription Stacks & Adaptive Guidance) — **COMPLETED (v0.3.0)**
+- **Active Branch:** `feat/ai-subscription-stacks`
+- **Milestone 2 Release Tag:** `v0.2.0` (on `milestone-2`)
 - **Milestone 1 Release Tag:** `v0.1.0` (on `coded-project`)
 - **Language / Toolchain:** Rust 1.98.1 (Apple Silicon `aarch64-apple-darwin`), Cargo, Git 2.55.0
 - **Workflow Preset:** 5-Phase Standard (`Specify` → `Plan` → `Build` → `Verify` → `Ship`)
-- **Codebase Size:** ~1,550 lines of clean, synchronous, warning-free Rust.
+- **Codebase Size:** ~1,750 lines of clean, synchronous, warning-free Rust.
 
 ---
 
@@ -56,9 +57,12 @@ This document tracks all design decisions, toolchain configurations, milestones 
   - Auto-detects test runners (`cargo test`, `pytest`, `npm test`, `go test`).
   - Subcommand `aiflow test [run | status]`: executes tests, records exit code, timestamp, and message into `.aiflow/.cache/test_results.json`.
   - Passively surfaced in `aiflow status` under `Test Suite Evidence:`.
-- **FSM Test Integration (`src/fsm.rs`):**
-  - During the `verify` phase, FSM actively inspects test evidence. If tests failed or have not been run, dynamically recommends `aiflow test run` before allowing progression to `ship`.
-- **Test Harness:** 6 automated unit tests validating discovery pruning, config serialization, runner detection, and current project identification.
+- **AI Subscription Stacks (`src/domain.rs`, `src/fsm.rs`, `src/main.rs`):**
+  - Implemented 3 preset subscription stacks: `claude-architect` (Claude + Codex), `claude-coder` (ChatGPT + Claude Code Pro), and `all-claude`.
+  - Added interactive questionnaire during `aiflow init` to let developers choose their active subscription setup.
+  - Subcommand `aiflow stack [list | set <name>]` allowing instant switching across stacks.
+  - Dynamically guides the developer in `aiflow status` and `aiflow next` with role-specific commands (e.g. recommending `claude` in terminal vs IDE authoring).
+- **Test Harness:** 8 automated unit tests validating discovery pruning, config serialization, runner detection, AI stacks, and current project identification.
 - **Installation:** Replaced global release binary in `~/.cargo/bin/aiflow` with `v0.2.0`.
 
 ---
