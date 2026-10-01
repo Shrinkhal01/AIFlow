@@ -86,6 +86,24 @@ pub fn compute_next_action(
             }
         }
         "verify" => {
+            if let Some(test_res) = crate::tester::load_cached_test_result(repo_root) {
+                if !test_res.passed {
+                    return NextAction {
+                        summary: format!("Fix failing tests ({})", test_res.command),
+                        assigned_role: Role::Implementer,
+                        recommended_command: "aiflow test run".to_string(),
+                        explanation: format!("Test run failed with exit code {}. Resolve errors before proceeding.", test_res.exit_code),
+                    };
+                }
+            } else if crate::tester::detect_test_runner(repo_root).is_some() {
+                return NextAction {
+                    summary: "Run project test suite".to_string(),
+                    assigned_role: Role::Tester,
+                    recommended_command: "aiflow test run".to_string(),
+                    explanation: "Test runner detected. Run tests to record verification evidence.".to_string(),
+                };
+            }
+
             if git.modified_count > 0 {
                 NextAction {
                     summary: "Commit or stash modified files before final review".to_string(),

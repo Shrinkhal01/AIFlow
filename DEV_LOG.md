@@ -43,28 +43,47 @@ This document tracks all design decisions, toolchain configurations, milestones 
 - **Compilation & Verification:** Built in `1.72s` with **zero compiler warnings**. All subcommands verified against live repository.
 - **Global Installation:** Installed release binary to `~/.cargo/bin/aiflow`. Configured `~/.zshrc` so `aiflow` can be executed globally from any terminal.
 
+### Step 4: Milestone 2 Implementation (Fleet Dashboard & Testing Integration)
+- **Branch:** `milestone-2` (tracked on `origin/milestone-2`).
+- **Release v0.1.0 Tagged:** Officially tagged `v0.1.0` on `coded-project` branch representing Milestone 1 completion.
+- **Global Configuration (`src/config.rs`):** Auto-creates and loads `~/.config/aiflow/config.yaml` with configurable `workspace_roots`, default presets, and role mappings.
+- **Multi-Repository Discovery & Fleet Dashboard (`src/discovery.rs`):**
+  - High-performance recursive scanner powered by `walkdir` (prunes `.git`, `node_modules`, `target`, `.cache`, `venv`).
+  - Terminal table rendered via `comfy-table` with rounded UTF-8 borders, colored phase badges, git branch cleanliness, task completion counters, and next actions.
+  - Subcommand `aiflow projects [--root <DIR>] [--all] [--filter <PHASE>] [--json]`.
+- **Test Runner Detection & Evidence Inspection (`src/tester.rs`):**
+  - Auto-detects test runners (`cargo test`, `pytest`, `npm test`, `go test`).
+  - Subcommand `aiflow test [run | status]`: executes tests, records exit code, timestamp, and message into `.aiflow/.cache/test_results.json`.
+  - Passively surfaced in `aiflow status` under `Test Suite Evidence:`.
+- **FSM Test Integration (`src/fsm.rs`):**
+  - During the `verify` phase, FSM actively inspects test evidence. If tests failed or have not been run, dynamically recommends `aiflow test run` before allowing progression to `ship`.
+- **Test Harness:** 6 automated unit tests validating discovery pruning, config serialization, runner detection, and current project identification.
+- **Installation:** Replaced global release binary in `~/.cargo/bin/aiflow` with `v0.2.0`.
+
 ---
 
 ## File Manifest
 
 | File | Purpose | Lines of Code |
 | :--- | :--- | :---: |
-| [`Cargo.toml`](Cargo.toml) | Cargo workspace manifest & dependencies | ~20 |
-| [`src/main.rs`](src/main.rs) | CLI entry point, command dispatch, and terminal formatting | ~240 |
-| [`src/cli.rs`](src/cli.rs) | Clap command-line parser & subcommands | ~75 |
+| [`Cargo.toml`](Cargo.toml) | Cargo workspace manifest & dependencies (`v0.2.0`) | ~25 |
+| [`src/main.rs`](src/main.rs) | CLI entry point, command dispatch, and terminal formatting | ~370 |
+| [`src/cli.rs`](src/cli.rs) | Clap command-line parser & subcommands (`projects`, `test`, etc.) | ~130 |
 | [`src/domain.rs`](src/domain.rs) | Core domain models, state structs, and role definitions | ~170 |
+| [`src/discovery.rs`](src/discovery.rs) | Multi-repo scanner and `comfy-table` fleet dashboard | ~260 |
+| [`src/config.rs`](src/config.rs) | Global configuration loader (`~/.config/aiflow/config.yaml`) | ~115 |
+| [`src/tester.rs`](src/tester.rs) | Test runner detector, execution harness, and passive cache | ~160 |
 | [`src/git.rs`](src/git.rs) | Read-only Git inspector (branch, dirty tree, commits) | ~80 |
 | [`src/storage.rs`](src/storage.rs) | `.aiflow/` filesystem manager & Markdown checklist parser | ~175 |
-| [`src/fsm.rs`](src/fsm.rs) | Workflow state machine & Next Action recommendation engine | ~120 |
+| [`src/fsm.rs`](src/fsm.rs) | Workflow state machine & Next Action recommendation engine | ~140 |
 | [`src/doctor.rs`](src/doctor.rs) | Health audit and consistency linter | ~100 |
 
 ---
 
-## Recommended Next Steps (Milestone 2)
-1. **Multi-Repository Discovery (`aiflow projects`):**
-   - Implement workspace directory scanner using `walkdir`/`ignore` to find all Git repos in `~/Projects` or `~/Shrinkhal-Github`.
-   - Render multi-project dashboard table showing phase, health, and pending actions across all repos.
-2. **Global Configuration:**
-   - Store user workspace roots and role mappings in `~/.config/aiflow/config.yaml`.
-3. **Pluggable Test Runner Detection:**
-   - Detect `cargo test`, `pytest`, `npm test`, `go test` and report pass/fail in `status`.
+## Recommended Next Steps (Milestone 3)
+1. **AI Context & Prompt Scaffolding (`aiflow prompt --role <role>`):**
+   - Generate structured Markdown prompt context (spec excerpt + active task + git diff) tailored for Claude Code, Codex, or Gemini.
+2. **Documentation Staleness Analyzer (`aiflow docs check`):**
+   - Compare commit timestamps and line changes between `src/` and `README.md`/`docs/` to warn if docs are falling behind implementation.
+3. **Interactive Terminal TUI Dashboard (`ratatui`):**
+   - Provide an optional real-time curses-style dashboard for flight monitoring across all projects.
