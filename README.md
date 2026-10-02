@@ -274,8 +274,5 @@ Detailed design documents are maintained in the [`docs/`](docs/) directory:
 
 ## License
 
-Dual-licensed under either:
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+Dual-licensed under
 - MIT license ([LICENSE-MIT](LICENSE-MIT))
-
-at your option.
