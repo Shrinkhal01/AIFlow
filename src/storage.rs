@@ -22,6 +22,16 @@ pub fn is_initialized(root: &Path) -> bool {
     aiflow_dir(root).join("project.yaml").exists()
 }
 
+pub fn is_first_open(root: &Path) -> bool {
+    !aiflow_dir(root).join(".cache").join(".opened").exists()
+}
+
+pub fn mark_as_opened(root: &Path) {
+    let dir = aiflow_dir(root).join(".cache");
+    let _ = fs::create_dir_all(&dir);
+    let _ = fs::write(dir.join(".opened"), "1");
+}
+
 /// Initialize the .aiflow directory with standard templates
 pub fn init_project(
     root: &Path,

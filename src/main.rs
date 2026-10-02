@@ -1,3 +1,4 @@
+mod banner;
 mod cli;
 mod config;
 mod discovery;
@@ -26,9 +27,9 @@ fn main() {
     let args = Cli::parse();
     let current_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
-    match args.command.unwrap_or(Commands::Status(cli::StatusArgs { json: false })) {
+    match args.command.unwrap_or(Commands::Status(cli::StatusArgs { json: false, welcome: false })) {
         Commands::Init(init_args) => handle_init(&current_dir, &init_args),
-        Commands::Status(status_args) => handle_status(&current_dir, status_args.json),
+        Commands::Status(status_args) => handle_status(&current_dir, status_args.json, status_args.welcome),
         Commands::Next => handle_next(&current_dir),
         Commands::Projects(projects_args) => handle_projects(&current_dir, &projects_args),
         Commands::Phase(phase_args) => handle_phase(&current_dir, &phase_args.action),
@@ -38,6 +39,7 @@ fn main() {
         Commands::Doctor => {
             doctor::run_doctor(&current_dir);
         }
+        Commands::Banner(banner_args) => handle_banner(&current_dir, &banner_args),
     }
 }
 
@@ -105,11 +107,19 @@ fn handle_init(root: &Path, args: &cli::InitArgs) {
 
     match init_project(root, &args.preset, name, lang, &stack) {
         Ok(_) => {
-            println!("\n{}", "🎉 Initialized AIFlow project successfully!".green().bold());
-            println!("  Project Name:  {}", name.cyan());
-            println!("  Language:      {}", lang.cyan());
+            let stack_display = AIStackPreset::from_id(&stack)
+                .map(|p| p.display_name().to_string())
+                .unwrap_or_else(|| stack.clone());
+
+            banner::render_banner(&banner::BannerMode::FirstTime(banner::FirstTimeInfo {
+                workspace_name: name,
+                language: lang,
+                is_initialized: true,
+                ai_stack: Some(&stack_display),
+            }));
+
+            println!("{}", "🎉 Initialized AIFlow project successfully!".green().bold());
             println!("  Preset:        {}", args.preset.magenta());
-            println!("  AI Stack:      {}", stack.yellow().bold());
             println!("  Artifacts:     .aiflow/project.yaml, workflow.yaml, state.yaml, spec.md, tasks.md\n");
             println!("Next Steps:");
             println!("  1. View project status:    {}", "aiflow status".bold().cyan());
@@ -123,11 +133,32 @@ fn handle_init(root: &Path, args: &cli::InitArgs) {
     }
 }
 
-fn handle_status(root: &Path, json: bool) {
+fn handle_status(root: &Path, json: bool, welcome: bool) {
     if !is_initialized(root) {
-        eprintln!("{}", "Error: AIFlow is not initialized in this repository.".red().bold());
-        eprintln!("Run '{}' to initialize.", "aiflow init".cyan());
-        std::process::exit(1);
+        if json {
+            eprintln!("{}", serde_json::json!({ "error": "AIFlow not initialized. Run 'aiflow init' first." }));
+            std::process::exit(1);
+        }
+
+        let workspace_name = root
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("project");
+        let lang = detect_language(root);
+
+        banner::render_banner(&banner::BannerMode::FirstTime(banner::FirstTimeInfo {
+            workspace_name,
+            language: lang,
+            is_initialized: false,
+            ai_stack: None,
+        }));
+
+        println!("{}", "Getting Started:".bold());
+        println!("  1. {}   Initialize .aiflow in this repository", "aiflow init".cyan());
+        println!("  2. {}   Use 4-phase lean preset (Specify->Build->Verify->Ship)", "aiflow init --preset lean".cyan());
+        println!("  3. {}   Select active AI subscription stack", "aiflow stack switch".cyan());
+        println!("  4. {}   Inspect fleet across workspace repositories\n", "aiflow projects".cyan());
+        return;
     }
 
     let (project, workflow, state) = match load_project_bundle(root) {
@@ -168,16 +199,47 @@ fn handle_status(root: &Path, json: bool) {
         return;
     }
 
-    // Terminal Display
-    println!("\nProject:      {} ({})", project.name.bold(), project.language.cyan());
-    println!("Location:     {}", root.display().to_string().dimmed());
-    if let Some(preset) = AIStackPreset::from_id(&project.ai_stack) {
-        println!("AI Stack:     {} ({})", preset.display_name().yellow(), preset.id().dimmed());
+    // Determine if this is the first time the initialized project is opened
+    let is_first_view = welcome || storage::is_first_open(root);
+
+    if is_first_view {
+        let stack_display = AIStackPreset::from_id(&project.ai_stack)
+            .map(|p| p.display_name().to_string())
+            .unwrap_or_else(|| project.ai_stack.clone());
+
+        banner::render_banner(&banner::BannerMode::FirstTime(banner::FirstTimeInfo {
+            workspace_name: &project.name,
+            language: &project.language,
+            is_initialized: true,
+            ai_stack: Some(&stack_display),
+        }));
+
+        storage::mark_as_opened(root);
     } else {
-        println!("AI Stack:     {}", project.ai_stack.yellow());
+        let active_phase = workflow.phases.iter().find(|p| p.id == state.current_phase);
+        let phase_name = active_phase.map(|p| p.name.as_str()).unwrap_or(&state.current_phase);
+        let phase_role = active_phase.map(|p| p.role.as_str()).unwrap_or("architect");
+        let stack_display = AIStackPreset::from_id(&project.ai_stack)
+            .map(|p| p.display_name().to_string())
+            .unwrap_or_else(|| project.ai_stack.clone());
+        let completed_count = tasks.iter().filter(|t| t.completed).count();
+
+        banner::render_banner(&banner::BannerMode::WorkingStage(banner::WorkingStageInfo {
+            project_name: &project.name,
+            language: &project.language,
+            phase_name,
+            phase_role,
+            ai_stack: &stack_display,
+            tasks_completed: completed_count,
+            tasks_total: tasks.len(),
+            branch: &git.branch,
+            modified_count: git.modified_count,
+            untracked_count: git.untracked_count,
+        }));
     }
+
     if let Some(ref commit) = git.last_commit_message {
-        println!("Last Commit:  {}", commit.dimmed());
+        println!("  {} {}", "Last Commit:".dimmed(), commit.dimmed());
     }
 
     // Workflow Breadcrumb
@@ -526,3 +588,63 @@ fn handle_test(root: &Path, action: Option<TestSubcommands>) {
         }
     }
 }
+
+fn handle_banner(root: &Path, args: &cli::BannerArgs) {
+    if args.ascii {
+        std::env::set_var("AIFLOW_BANNER", "ascii");
+    } else if args.image {
+        std::env::set_var("AIFLOW_BANNER", "image");
+    }
+
+    if args.welcome || !is_initialized(root) {
+        let workspace_name = root
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("project");
+        let lang = detect_language(root);
+        let (name, is_init, stack) = if is_initialized(root) {
+            let bundle = load_project_bundle(root).ok();
+            let p_name = bundle
+                .as_ref()
+                .map(|b| b.0.name.clone())
+                .unwrap_or_else(|| workspace_name.to_string());
+            let p_stack = bundle.as_ref().and_then(|b| {
+                AIStackPreset::from_id(&b.0.ai_stack).map(|p| p.display_name().to_string())
+            });
+            (p_name, true, p_stack)
+        } else {
+            (workspace_name.to_string(), false, None)
+        };
+
+        banner::render_banner(&banner::BannerMode::FirstTime(banner::FirstTimeInfo {
+            workspace_name: &name,
+            language: lang,
+            is_initialized: is_init,
+            ai_stack: stack.as_deref(),
+        }));
+    } else if let Ok((project, workflow, state)) = load_project_bundle(root) {
+        let git = inspect_git(root).unwrap_or_default();
+        let tasks = load_tasks(root).unwrap_or_default();
+        let active_phase = workflow.phases.iter().find(|p| p.id == state.current_phase);
+        let phase_name = active_phase.map(|p| p.name.as_str()).unwrap_or(&state.current_phase);
+        let phase_role = active_phase.map(|p| p.role.as_str()).unwrap_or("architect");
+        let stack_display = AIStackPreset::from_id(&project.ai_stack)
+            .map(|p| p.display_name().to_string())
+            .unwrap_or_else(|| project.ai_stack.clone());
+        let completed_count = tasks.iter().filter(|t| t.completed).count();
+
+        banner::render_banner(&banner::BannerMode::WorkingStage(banner::WorkingStageInfo {
+            project_name: &project.name,
+            language: &project.language,
+            phase_name,
+            phase_role,
+            ai_stack: &stack_display,
+            tasks_completed: completed_count,
+            tasks_total: tasks.len(),
+            branch: &git.branch,
+            modified_count: git.modified_count,
+            untracked_count: git.untracked_count,
+        }));
+    }
+}
+

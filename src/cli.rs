@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "aiflow",
     author = "Shrinkhal",
-    version = "0.3.0",
+    version = "0.4.0",
     about = "Local developer workflow and project-tracking CLI for AI-assisted development",
     long_about = "A local-first, Git-native developer control plane that tracks repository development phases, tasks, and next actions."
 )]
@@ -41,6 +41,24 @@ pub enum Commands {
 
     /// Run health check verifying repository structure and state
     Doctor,
+
+    /// Display AIFlow brand banner and terminal rendering mode
+    Banner(BannerArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct BannerArgs {
+    /// Force ASCII Fastfetch mode even in modern terminals
+    #[arg(long)]
+    pub ascii: bool,
+
+    /// Force terminal image mode
+    #[arg(long)]
+    pub image: bool,
+
+    /// Display first-time setup welcome card
+    #[arg(long)]
+    pub welcome: bool,
 }
 
 #[derive(Args, Debug)]
@@ -67,6 +85,10 @@ pub struct StatusArgs {
     /// Output raw JSON instead of formatted terminal UI
     #[arg(long)]
     pub json: bool,
+
+    /// Display first-time setup welcome card
+    #[arg(long)]
+    pub welcome: bool,
 }
 
 #[derive(Args, Debug)]

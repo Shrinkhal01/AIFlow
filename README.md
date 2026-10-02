@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="assets/aiflow_icon.png" alt="AIFlow Logo" width="128" height="128" />
+</p>
+
 # AIFlow
 
-[![Version: v0.3.0 (Operational)](https://img.shields.io/badge/Version-v0.3.0-success?style=for-the-badge)](#quickstart)
+[![Version: v0.4.0 (Operational)](https://img.shields.io/badge/Version-v0.4.0-success?style=for-the-badge)](#quickstart)
 [![License: MIT / Apache 2.0](https://img.shields.io/badge/License-MIT%20%2F%20Apache%202.0-blue?style=for-the-badge)](#license)
 [![Target: macOS & Linux](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon)%20%7C%20Linux-black?style=for-the-badge&logo=apple)](#technology-stack)
 
@@ -262,8 +266,9 @@ Detailed design documents are maintained in the [`docs/`](docs/) directory:
 - [x] **Phase 1: MVP Core (v0.1.0)** — Single-repo `init`, `status`, `next`, `phase`, `task`, `doctor`, and Git state detection. *(Completed)*
 - [x] **Phase 2: Multi-Project Tracking (v0.2.0)** — `aiflow projects` multi-repo dashboard and workspace discovery. *(Completed)*
 - [x] **Phase 3: AI Subscription Stacks & Test Runners (v0.3.0)** — 3 preset AI stacks (`aiflow stack`) and test runner integration (`aiflow test`). *(Completed)*
-- [ ] **Phase 4: Agent Prompt Scaffolding (v0.4.0)** — Context prompt generator (`aiflow prompt`) and doc staleness engine.
-- [ ] **Phase 5: Public Distribution (v1.0.0)** — Homebrew tap, CI/CD, and binary releases.
+- [x] **Phase 4: Visual Control Plane & Terminal Branding (v0.4.0)** — App icon assets, iTerm2/Kitty image protocols, clean Fastfetch fallback, and adaptive first-time onboarding. *(Completed)*
+- [ ] **Phase 5: Agent Prompt Scaffolding (v0.5.0)** — Context prompt generator (`aiflow prompt`) and doc staleness engine.
+- [ ] **Phase 6: Public Distribution (v1.0.0)** — Homebrew tap, CI/CD, and binary releases.
 
 ---
 

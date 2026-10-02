@@ -5,13 +5,14 @@ This document tracks all design decisions, toolchain configurations, milestones 
 ---
 
 ## Current Status Overview
-- **Active Phase:** Milestone 3 (AI Subscription Stacks & Adaptive Guidance) — **COMPLETED (v0.3.0)**
-- **Active Branch:** `feat/ai-subscription-stacks`
+- **Active Phase:** Milestone 4 (Visual Control Plane & Terminal Branding) — **COMPLETED (v0.4.0)**
+- **Active Branch:** `main`
+- **Milestone 3 Release Tag:** `v0.3.0`
 - **Milestone 2 Release Tag:** `v0.2.0` (on `milestone-2`)
 - **Milestone 1 Release Tag:** `v0.1.0` (on `coded-project`)
 - **Language / Toolchain:** Rust 1.98.1 (Apple Silicon `aarch64-apple-darwin`), Cargo, Git 2.55.0
 - **Workflow Preset:** 5-Phase Standard (`Specify` → `Plan` → `Build` → `Verify` → `Ship`)
-- **Codebase Size:** ~1,750 lines of clean, synchronous, warning-free Rust.
+- **Codebase Size:** ~2,100 lines of clean, synchronous, warning-free Rust.
 
 ---
 
@@ -63,7 +64,24 @@ This document tracks all design decisions, toolchain configurations, milestones 
   - Subcommand `aiflow stack [list | set <name>]` allowing instant switching across stacks.
   - Dynamically guides the developer in `aiflow status` and `aiflow next` with role-specific commands (e.g. recommending `claude` in terminal vs IDE authoring).
 - **Test Harness:** 8 automated unit tests validating discovery pruning, config serialization, runner detection, AI stacks, and current project identification.
-- **Installation:** Replaced global release binary in `~/.cargo/bin/aiflow` with `v0.2.0`.
+- **Installation:** Replaced global release binary in `~/.cargo/bin/aiflow` with `v0.3.0`.
+
+### Step 5: Milestone 4 Visual Control Plane & Terminal Branding (Oct 2026, v0.4.0)
+- **App Icon & Visual Assets:**
+  - Prepared optimized terminal icon asset [assets/aiflow_terminal.jpg](assets/aiflow_terminal.jpg) (256x256, 18 KB, dark slate squircle badge) embedded via `include_bytes!`.
+  - Added clean transparent squircle badge [assets/aiflow_icon.png](assets/aiflow_icon.png) for web/markdown presentation.
+- **Terminal Graphic Protocol Auto-Detection (`src/banner.rs`):**
+  - Implemented automatic detection for iTerm2, Ghostty, Kitty, VS Code Terminal, and WezTerm.
+  - Emits iTerm2 inline image protocol (`\x1b]1337;File=inline=1...`) or Kitty chunked graphics protocol.
+- **High-Precision Fastfetch Fallback:**
+  - Recreated the icon's exact visual geometry (terminal prompt `>_`, git pipeline branch graph, electric cyan "A" arrow, and warm orange leg) in 24-bit TrueColor Unicode art.
+  - Side-by-side Neofetch-style layout with exact 25-column visual character alignment.
+- **Adaptive Project Lifecycle State:**
+  - **First-Time Opened:** Displays app version, overview, workspace name, detected language, AI stacks list, and getting-started guide.
+  - **Working Stage:** Automatically displays real-time project working stage, active phase role, AI stack, task progress, and Git branch cleanliness.
+- **CLI Subcommand & Overrides (`src/cli.rs` & `src/main.rs`):**
+  - Added `aiflow banner [--ascii | --image | --welcome]` and `aiflow status --welcome`.
+  - Preserves clean JSON mode (`aiflow status --json`) without ANSI interference.
 
 ---
 
@@ -71,21 +89,22 @@ This document tracks all design decisions, toolchain configurations, milestones 
 
 | File | Purpose | Lines of Code |
 | :--- | :--- | :---: |
-| [`Cargo.toml`](Cargo.toml) | Cargo workspace manifest & dependencies (`v0.2.0`) | ~25 |
-| [`src/main.rs`](src/main.rs) | CLI entry point, command dispatch, and terminal formatting | ~370 |
-| [`src/cli.rs`](src/cli.rs) | Clap command-line parser & subcommands (`projects`, `test`, etc.) | ~130 |
+| [`Cargo.toml`](Cargo.toml) | Cargo workspace manifest & dependencies (`v0.4.0`) | ~25 |
+| [`src/main.rs`](src/main.rs) | CLI entry point, command dispatch, and terminal formatting | ~430 |
+| [`src/banner.rs`](src/banner.rs) | Terminal graphics protocols, fastfetch art, and adaptive cards | ~340 |
+| [`src/cli.rs`](src/cli.rs) | Clap command-line parser & subcommands (`projects`, `test`, `banner`) | ~170 |
 | [`src/domain.rs`](src/domain.rs) | Core domain models, state structs, and role definitions | ~170 |
 | [`src/discovery.rs`](src/discovery.rs) | Multi-repo scanner and `comfy-table` fleet dashboard | ~260 |
 | [`src/config.rs`](src/config.rs) | Global configuration loader (`~/.config/aiflow/config.yaml`) | ~115 |
 | [`src/tester.rs`](src/tester.rs) | Test runner detector, execution harness, and passive cache | ~160 |
 | [`src/git.rs`](src/git.rs) | Read-only Git inspector (branch, dirty tree, commits) | ~80 |
-| [`src/storage.rs`](src/storage.rs) | `.aiflow/` filesystem manager & Markdown checklist parser | ~175 |
+| [`src/storage.rs`](src/storage.rs) | `.aiflow/` filesystem manager, first-open tracker & parser | ~185 |
 | [`src/fsm.rs`](src/fsm.rs) | Workflow state machine & Next Action recommendation engine | ~140 |
 | [`src/doctor.rs`](src/doctor.rs) | Health audit and consistency linter | ~100 |
 
 ---
 
-## Recommended Next Steps (Milestone 3)
+## Recommended Next Steps (Milestone 5)
 1. **AI Context & Prompt Scaffolding (`aiflow prompt --role <role>`):**
    - Generate structured Markdown prompt context (spec excerpt + active task + git diff) tailored for Claude Code, Codex, or Gemini.
 2. **Documentation Staleness Analyzer (`aiflow docs check`):**
