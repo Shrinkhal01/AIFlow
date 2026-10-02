@@ -23,7 +23,7 @@ AIFlow compiles into a single, lightning-fast (<10ms) standalone binary:
 
 ```bash
 # Clone and install globally
-git clone https://github.com/Shrinkhal01/2026-workflow-projects.git aiflow
+git clone https://github.com/Shrinkhal01/AIFlow.git aiflow
 cd aiflow
 cargo install --path .
 ```
