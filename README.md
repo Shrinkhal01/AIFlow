@@ -10,6 +10,10 @@
 
 > **A local developer workflow and project-tracking CLI for software engineers building with AI coding agents.**
 
+<p align="center">
+  <img src="assets/aiflow-terminal-demo.png" alt="AIFlow Terminal Interface on macOS" width="850" />
+</p>
+
 ---
 
 ## Quickstart
