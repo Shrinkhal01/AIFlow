@@ -4,7 +4,7 @@
 **Author:** Lead Software Architect & Product Engineer  
 **Date:** October 2026  
 **Version:** 0.3.0  
-**Repository:** [github.com/Shrinkhal01/2026-workflow-projects](https://github.com/Shrinkhal01/2026-workflow-projects)  
+**Repository:** [github.com/Shrinkhal01/AIFlow](https://github.com/Shrinkhal01/AIFlow)  
 **Implementation Language:** 100% Native Rust (Zero External Runtime Dependencies)
 
 ---
