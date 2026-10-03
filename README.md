@@ -10,6 +10,10 @@
 
 > **A local developer workflow and project-tracking CLI for software engineers building with AI coding agents.**
 
+<p align="center">
+  <img src="assets/aiflow-terminal-demo.png" alt="AIFlow Terminal Interface on macOS" width="850" />
+</p>
+
 ---
 
 ## Quickstart
@@ -19,7 +23,7 @@ AIFlow compiles into a single, lightning-fast (<10ms) standalone binary:
 
 ```bash
 # Clone and install globally
-git clone https://github.com/Shrinkhal01/2026-workflow-projects.git aiflow
+git clone https://github.com/Shrinkhal01/AIFlow.git aiflow
 cd aiflow
 cargo install --path .
 ```
