@@ -279,4 +279,4 @@ Detailed design documents are maintained in the [`docs/`](docs/) directory:
 ## License
 
 Dual-licensed under
-- MIT license ([LICENSE-MIT](LICENSE-MIT))
+- MIT license ([LICENSE-MIT](LICENSE))
